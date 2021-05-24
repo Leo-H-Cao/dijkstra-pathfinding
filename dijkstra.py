@@ -30,17 +30,19 @@ class Spot():
         self.total_rows = total_rows
         self.neighbors = []
         self.color = WHITE
-        self.distance = sys.maxsize
+        self.distance = 999
+        self.visited = False
 
-    def get_pos(self):
-        return self.row, self.col
     
     def get_distance(self):
         return self.distance
 
     def set_distance(self, dist):
-        self.disance = dist
-    
+        self.distance = dist
+
+    def set_visited(self, visited):
+        self.visited = visited
+
     def make_start(self):
         self.color = TURQUOISE
 
@@ -56,7 +58,7 @@ class Spot():
     def make_closed(self):
         self.color = GREEN
     
-    def reset(seld):
+    def reset(self):
         self.color = WHITE
 
     def is_start(self):
@@ -69,10 +71,10 @@ class Spot():
         return self.color == BLACK
     
     def is_open(self):
-        return self.color == GREEN
+        return self.color == RED
 
     def is_closed(self):
-        return self.color == RED
+        return self.color == GREEN
 
     def draw(self, window):   
         pygame.draw.rect(window, self.color, (self.x, self.y, self.width, self.width)) 
@@ -93,8 +95,10 @@ class Spot():
 
 def get_clicked_pos(pos, total_rows, width):
     gap = width//total_rows
-    row = pos[1] // gap
-    col = pos[0] // gap
+
+    row = pos[0] // gap
+    col = pos[1] // gap
+
     return row, col
 
 
@@ -131,7 +135,6 @@ def algorithm(draw, grid, start, end):
     count = 1
     for row in grid:
         for spot in row:
-            spot.update_neighbors(grid)
             if spot != start:
                 pq.append((spot.get_distance(), count, spot))
                 count += 1
@@ -144,10 +147,20 @@ def algorithm(draw, grid, start, end):
     while len(pq):
         uv = hq.heappop(pq)
         current = uv[2]
-        current.make_closed()
+        # current.set_visited(True)
+   
+        if current == end:
+            break
+
+        if current != start:
+            current.make_closed()
+
         for neighbor in current.neighbors:
-            if neighbor.is_closed():
+            # if neighbor.visited:  
+            #     continue
+            if neighbor.is_closed() or spot.is_start():
                 continue
+
             if not (neighbor.is_start() or neighbor.is_end() or neighbor.is_border()):
                 neighbor.make_open()
 
@@ -162,11 +175,14 @@ def algorithm(draw, grid, start, end):
         count = 0
         for row in grid:
             for spot in row:
-                if not spot.is_closed():
+                if not (spot.is_closed() or spot.is_start()):
                     pq.append((spot.get_distance(), count, spot))
                     count += 1
-
+        
+        # if current != start:
+        #     current.make_closed()
         hq.heapify(pq)
+        
         draw()
 
 def main(window, width):
@@ -198,21 +214,30 @@ def main(window, width):
                     if spot != end and spot != start:
                         spot.make_border()
             
-            if pygame.mouse.get_pressed()[1]:
+            if pygame.mouse.get_pressed()[2]:
                 pos = pygame.mouse.get_pos()
                 row, col = get_clicked_pos(pos, ROWS, width)
                 spot = grid[row][col]
-                spot.reset()
+                
 
                 if spot.is_start():
                     start = None
+                    spot.reset()
                     
                 if spot.is_end():
                     end = None
+                    spot.reset()
+
+                elif spot.is_border():
+                    spot.reset()
                 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and start and end:
-                    algorithm(lambda: draw_all(window, grid, ROWS, width), grid, start, end)
+                    for row in grid:
+                        for spot in row:
+                            spot.update_neighbors(grid)
+
+                    algorithm(lambda: draw_all(window, grid, width, ROWS), grid, start, end)
 
                 if event.key == pygame.K_c:
                     start = None

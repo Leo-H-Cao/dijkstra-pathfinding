@@ -1,5 +1,7 @@
 import pygame
 import math
+import heapq as hq
+import sys
 
 WIDTH = 800
 WINDOW = pygame.display.set_mode((WIDTH, WIDTH))
@@ -24,13 +26,18 @@ class Spot():
         self.col = col
         self.width  = width
         self.total_rows = total_rows
-        self.x = row*width
-        self.y = col*width
         self.neighbors = []
         self.color = WHITE
+        self.distance = sys.maxint
 
     def get_pos(self):
         return self.row, self.col
+    
+    def get_distance(self):
+        return self.distance
+
+    def set_distance(self, dist):
+        self.disance = dist
     
     def make_start(self):
         self.color = TURQUOISE
@@ -57,13 +64,28 @@ class Spot():
         return self.color == BLACK
     
     def is_open(self):
-        return self.color == RED
+        return self.color == GREEN
 
     def is_closed(self):
-        return self.color == GREEN
+        return self.color == RED
 
     def draw(self, window):   
         pygame.draw.rect(window, self.color, (self.x, self.y, self.width, self.width)) 
+    
+    def update_neighbors(self, grid):
+
+        if self.row < self.total_rows-1 and not grid[self.row+1][self.col].is_barrier(): #DOWN
+            self.neighbors.append(grid[self.row+1][self.col])
+
+        if self.row > 0 and not grid[self.row-1][self.col].is_barrier(): #UP
+            self.neighbors.append(grid[self.row-1][self.col])
+
+        if self.col < self.total_rows-1 and not grid[self.row][self.col+1].is_barrier(): #RIGHT
+            self.neighbors.append(grid[self.row][self.col+1])
+
+        if self.col > 0 and not grid [self.row][self.col-1].is_barrier(): #LEFT
+            self.neighbors.append(grid[self.row][self.col-1])
+
 
 def make_grid(width, total_rows):
     grid = []
@@ -91,10 +113,52 @@ def draw_all(window, grid, width, total_rows):
 
     draw_grid(window, width, total_rows)
     pygame.display.update()
+
+def algorithm(draw, grid, start, end):
+    pq = []
+    came_from = {}
+    for row in grid:
+        for spot in row:
+            spot.update_neighbors(grid)
+            if spot != start:
+                pq.append((spot.get_distance(), spot))
+            elif spot == start:
+                spot.set_distance(0)
+                pq.append(spot.get_distance(), spot)
+
+    hq.heapify(pq)
+
+    while len(pq):
+        uv = hq.heappop(hq)
+        current = uv[1]
+        current.make_closed()
+        for neighbor in current.neighbors:
+            if neighbor.is_closed():
+                continue
+            if not (neighbor.is_start() or neighbor.is_end() or neighbor.is_border()):
+                neighbor.make_open()
+
+            new_dist = current.get_distance() + 1
+
+            if new_dist < neighbor.get_distance():
+                neighbor.set_distance(new_dist)
+                came_from[neighbor] = current
+
+        while len(pq):
+            hq.heappop(pq)
+        pq = [(spot.get_distance(), spot) for row in grid for spot in row if not spot.is_closed()]
+        hq.heapify(pq)
+
+def main(window, width):
+    total_rows = 50
+    grid = make_grid(width, total_rows)
             
-grid = make_grid(WIDTH, 50)
-while True: 
-    draw_all(WINDOW, grid, WIDTH, 50)
+
+
+
+
+
+            
 
     
 

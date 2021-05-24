@@ -9,7 +9,7 @@ pygame.display.set_caption('Dijkstra Path Finding Algorithm')
 
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
-BLUE = (0, 255, 0)
+BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -57,6 +57,9 @@ class Spot():
     
     def make_closed(self):
         self.color = GREEN
+    
+    def make_path(self):
+        self.color = BLUE
     
     def reset(self):
         self.color = WHITE
@@ -129,6 +132,13 @@ def draw_all(window, grid, width, total_rows):
     draw_grid(window, width, total_rows)
     pygame.display.update()
 
+def reconstruct_path(came_from, start, end, draw):
+    current = came_from[end]
+    while current != start:
+        current.make_path()
+        current = came_from[current]
+        draw()
+
 def algorithm(draw, grid, start, end):
     pq = []
     came_from = {}
@@ -145,21 +155,26 @@ def algorithm(draw, grid, start, end):
     hq.heapify(pq)
 
     while len(pq):
+        #only thing user can do after algorithm starts is quit, cannot add additional borders, change start, end
+        for event in pygame.event.get():   
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
         uv = hq.heappop(pq)
         current = uv[2]
-        # current.set_visited(True)
+        current.set_visited(True)
    
         if current == end:
             break
 
-        if current != start:
-            current.make_closed()
+        # if current != start:
+        #     current.make_closed()
 
         for neighbor in current.neighbors:
-            # if neighbor.visited:  
+            if neighbor.visited:  
+                 continue
+            # if neighbor.is_closed() or spot.is_start():
             #     continue
-            if neighbor.is_closed() or spot.is_start():
-                continue
 
             if not (neighbor.is_start() or neighbor.is_end() or neighbor.is_border()):
                 neighbor.make_open()
@@ -179,11 +194,12 @@ def algorithm(draw, grid, start, end):
                     pq.append((spot.get_distance(), count, spot))
                     count += 1
         
-        # if current != start:
-        #     current.make_closed()
+        if current != start:
+            current.make_closed()
         hq.heapify(pq)
         
         draw()
+    reconstruct_path(came_from, start, end, draw)
 
 def main(window, width):
     ROWS = 50
@@ -242,7 +258,7 @@ def main(window, width):
                 if event.key == pygame.K_c:
                     start = None
                     end = None
-                    grid = make_grid(ROWS, width)
+                    grid = make_grid(width, ROWS)
         
     pygame.quit()
 

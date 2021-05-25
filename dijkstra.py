@@ -164,8 +164,9 @@ def algorithm(draw, grid, start, end):
         current = uv[2]
         current.set_visited(True)
    
-        if current == end:
-            break
+        if current == end: 
+            break 
+        #can end here because shortest path to a node that has already been visited will never be changed when using Dijkstra's, even thought original algorithm finds shortest-path length to every vertex (would pop every spot off the queue)
 
         # if current != start:
         #     current.make_closed()
